@@ -15,6 +15,11 @@ jobs:
           wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
           tar xf boost_${BOOST_VERSION//./_}.tar.gz
           cd boost_${BOOST_VERSION//./_}
-          ./bootstrap.sh --prefix=/opt.boost
+          ./bootstrap.sh --prefix="${PWD}/opt/boost11"
           ./b2 install cxxflags="-std=c++11" linkflags="-std=c++11"
+      - name: Archive binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: boost-1.68.0
+          path: opt
   
