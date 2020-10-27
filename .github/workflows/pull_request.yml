@@ -3,23 +3,27 @@ name: CI
 on:
   pull_request:
     branches: [ main ]
-    
+
+env:
+  BOOST_VERSION: 1.68.0
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Download and build boost
+      - name: Download boost
+        run: wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
+      - name: Extract boost
+        run: tar xf boost_${BOOST_VERSION//./_}.tar.gz
+      - name: Build boost
         run: |
-          BOOST_VERSION=1.68.0
-          wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
-          tar xf boost_${BOOST_VERSION//./_}.tar.gz
           cd boost_${BOOST_VERSION//./_}
-          ./bootstrap.sh --prefix="${PWD}/opt/boost11"
+          ./bootstrap.sh --prefix="${GITHUB_WORKSPACE}/opt/boost11"
           ./b2 install cxxflags="-std=c++11" linkflags="-std=c++11"
-      - name: Archive binaries
+      - name: Archive boost
         uses: actions/upload-artifact@v2
         with:
-          name: boost-1.68.0
-          path: opt
+          name: boost-${{ env.BOOST_VERSION }}
+          path: ${{ env.GITHUB_WORKSPACE }}/opt
   
