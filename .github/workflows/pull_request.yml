@@ -99,7 +99,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v1
       with:
-        name: "${{ steps.config.outputs.artefact_name }}p"
+        name: "${{ steps.config.outputs.artefact_name }}"
         path: ./
     - name: Download URL
       uses: actions/download-artifact@v1
