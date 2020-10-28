@@ -88,9 +88,9 @@ jobs:
 
     steps:
     - id: config
-        run: |
-          artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
-          echo ::set-output name=artefact_name::$artefact_name
+      run: |
+        artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
+        echo ::set-output name=artefact_name::$artefact_name
     - name: Download artifact
       uses: actions/download-artifact@v1
       with:
