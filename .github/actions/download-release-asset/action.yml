@@ -1,0 +1,34 @@
+# action.yml
+name: 'Download Release Asset'
+branding:
+  icon: 'download'
+  color: 'gray-dark'
+description: 'Download an asset from a public github release'
+inputs:
+  version:
+    description: 'A specific release version. Defaults to latest'
+    required: true
+    default: 'latest'
+  repository:
+    description: 'Relative path to the repository in the format user/repo e.g.: myuser/my-repository'
+    required: true
+  file:
+    description: 'The name of the asset to download from the release'
+    required: true
+  out:
+    description: 'Path to the directory where to download the asset'
+    required: false
+    default: '.'
+  token:
+    description: 'The GitHub access token'
+    required: false
+    default: ''
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - "${{ inputs.version }}"
+    - "${{ inputs.repository }}"
+    - "${{ inputs.file }}"
+    - "${{ inputs.out }}"
+    - "${{ inputs.token }}"

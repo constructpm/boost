@@ -3,18 +3,121 @@ name: CI
 on:
   pull_request:
     branches: [ main ]
-    
+    paths-ignore:
+    - '**/*.md'
+  push:
+    branches: [ main ]
+    paths-ignore:
+    - '**/*.md'
+
+env:
+  BOOST_VERSION: 1.68.0
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: "Build ${{ matrix.config.os }}"
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: "ubuntu-16.04"
+            std: "11"
+          - os: "ubuntu-18.04"
+            std: "11"
     steps:
-      - uses: actions/checkout@v2
-      - name: Download and build boost
+      - id: config
         run: |
-          BOOST_VERSION=1.68.0
-          wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION/./_}.tar.gz
-          tar xf boost_${BOOST_VERSION/./_}.tar.gz
-          cd boost_${BOOST_VERSION/./_}
-          ./bootstrap.sh --prefix=/opt.boost
-          ./b2 install cxxflags="-std=c++11" linkflags="-std=c++11"
-  
+          artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
+          echo ::set-output name=artefact_name::$artefact_name
+      - uses: actions/checkout@v2
+      - name: Download boost
+        run: wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
+      - name: Extract boost
+        run: tar xf boost_${BOOST_VERSION//./_}.tar.gz
+      - name: Build boost
+        run: |
+          cd boost_${BOOST_VERSION//./_}
+          ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost${{ matrix.config.std }}"
+          ./b2 -j$(nproc) install cxxflags="-std=c++${{ matrix.config.std }} -fPIC" linkflags="-std=c++${{ matrix.config.std }} -fPIC" link=static
+      - name: Archive boost
+        working-directory: ${{ github.workspace }}/opt
+        run: cmake -E tar cJfv "${{ steps.config.outputs.artefact_name }}" boost${{ matrix.config.std }}
+      - name: Upload artefact
+        uses: actions/upload-artifact@v2
+        with:
+          name: "${{ steps.config.outputs.artefact_name }}"
+          path: "${{ github.workspace }}/opt/${{ steps.config.outputs.artefact_name }}"
+
+  release:
+    if: contains(github.ref, 'tags/v')
+
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Store Release url
+      run: echo "${{ steps.create_release.outputs.upload_url }}" > ./upload_url
+    - uses: actions/upload-artifact@v1
+      with:
+        path: ./upload_url
+        name: upload_url
+
+  publish:
+    if: contains(github.ref, 'tags/v')
+
+    name: "Publish ${{ matrix.config.os }}"
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: "ubuntu-16.04"
+            std: "11"
+          - os: "ubuntu-18.04"
+            std: "11"
+    needs: release
+
+    steps:
+    - id: config
+      run: |
+        artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
+        echo ::set-output name=artefact_name::$artefact_name
+    - name: Download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: "${{ steps.config.outputs.artefact_name }}p"
+        path: ./
+    - name: Download URL
+      uses: actions/download-artifact@v1
+      with:
+        name: upload_url
+        path: ./
+    - id: set_upload_url
+      run: |
+        upload_url=`cat ./upload_url`
+        echo ::set-output name=upload_url::$upload_url
+    - name: Upload to Release
+      id: upload_to_release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
+        asset_path: "./${{ steps.config.outputs.artefact_name }}"
+        asset_name: "${{ steps.config.outputs.artefact_name }}"
+        asset_content_type: application/x-gtar
+
+
