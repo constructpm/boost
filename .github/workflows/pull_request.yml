@@ -19,11 +19,11 @@ jobs:
       - name: Build boost
         run: |
           cd boost_${BOOST_VERSION//./_}
-          ./bootstrap.sh --prefix="${GITHUB_WORKSPACE}/opt/boost11"
+          ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost11"
           ./b2 install cxxflags="-std=c++11" linkflags="-std=c++11"
       - name: Archive boost
         uses: actions/upload-artifact@v2
         with:
           name: boost-${{ env.BOOST_VERSION }}
-          path: ${{ env.GITHUB_WORKSPACE }}/opt
+          path: ${{ github.workspace }}/opt
   
