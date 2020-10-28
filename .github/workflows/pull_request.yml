@@ -27,7 +27,7 @@ jobs:
         run: |
           cd boost_${BOOST_VERSION//./_}
           ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost11"
-          ./b2 -j$(nproc) install cxxflags="-std=c++11 -fPIC" linkflags="-std=c++11 -fPIC"
+          ./b2 -j$(nproc) install cxxflags="-std=c++11 -fPIC" linkflags="-std=c++11 -fPIC" link=static
       - name: Archive boost
         uses: actions/upload-artifact@v2
         with:
