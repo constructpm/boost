@@ -16,9 +16,7 @@ jobs:
       matrix:
         config:
           - os: "ubuntu-16.04"
-            artifact: "boost-${{ env.BOOST_VERSION }}-ubuntu-16.04-x64"
           - os: "ubuntu-18.04"
-            artifact: "boost-${{ env.BOOST_VERSION }}-ubuntu-18.04-x64"
     steps:
       - uses: actions/checkout@v2
       - name: Download boost
@@ -33,6 +31,6 @@ jobs:
       - name: Archive boost
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.artifact }}
+          name: "boost-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64"
           path: ${{ github.workspace }}/opt
   
