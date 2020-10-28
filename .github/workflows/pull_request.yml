@@ -18,8 +18,14 @@ jobs:
       matrix:
         config:
           - os: "ubuntu-16.04"
+            std: "11"
           - os: "ubuntu-18.04"
+            std: "11"
     steps:
+      - id: config
+        run: |
+          artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
+          echo ::set-output name=artefact_name::$artefact_name
       - uses: actions/checkout@v2
       - name: Download boost
         run: wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
@@ -28,13 +34,16 @@ jobs:
       - name: Build boost
         run: |
           cd boost_${BOOST_VERSION//./_}
-          ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost11"
-          ./b2 -j$(nproc) install cxxflags="-std=c++11 -fPIC" linkflags="-std=c++11 -fPIC" link=static
+          ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost${{ matrix.config.std }}"
+          ./b2 -j$(nproc) install cxxflags="-std=c++${{ matrix.config.std }} -fPIC" linkflags="-std=c++${{ matrix.config.std }} -fPIC" link=static
       - name: Archive boost
+        working-directory: ${{ github.workspace }}/opt
+        run: cmake -E tar cJfv "${{ steps.config.outputs.artefact_name }}" boost${{ matrix.config.std }}
+      - name: Upload artefact
         uses: actions/upload-artifact@v2
         with:
-          name: "boost-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64"
-          path: ${{ github.workspace }}/opt
+          name: "${{ steps.config.outputs.artefact_name }}"
+          path: "${{ github.workspace }}/opt/${{ steps.config.outputs.artefact_name }}"
 
   release:
     if: contains(github.ref, 'tags/v')
@@ -72,14 +81,20 @@ jobs:
       matrix:
         config:
           - os: "ubuntu-16.04"
+            std: "11"
           - os: "ubuntu-18.04"
+            std: "11"
     needs: release
 
     steps:
+    - id: config
+        run: |
+          artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
+          echo ::set-output name=artefact_name::$artefact_name
     - name: Download artifact
       uses: actions/download-artifact@v1
       with:
-        name: "boost-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.zip"
+        name: "${{ steps.config.outputs.artefact_name }}p"
         path: ./
     - name: Download URL
       uses: actions/download-artifact@v1
@@ -97,8 +112,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
-        asset_path: "./boost-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.zip"
-        asset_name: "boost-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.zip"
+        asset_path: "./${{ steps.config.outputs.artefact_name }}"
+        asset_name: "${{ steps.config.outputs.artefact_name }}"
         asset_content_type: application/x-gtar
 
 
