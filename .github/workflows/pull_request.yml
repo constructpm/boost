@@ -12,7 +12,7 @@ on:
     - '**/*.md'
 
 env:
-  BOOST_VERSION: 1.68.0
+  BOOST_VERSION: 1.75.0
 
 jobs:
   build:
@@ -26,6 +26,14 @@ jobs:
             std: "11"
           - os: "ubuntu-18.04"
             std: "11"
+          - os: "ubuntu-20.04"
+            std: "11"
+          - os: "ubuntu-16.04"
+            std: "14"
+          - os: "ubuntu-18.04"
+            std: "14"
+          - os: "ubuntu-20.04"
+            std: "14"
     steps:
       - id: config
         run: |
