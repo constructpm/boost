@@ -97,6 +97,14 @@ jobs:
             std: "11"
           - os: "ubuntu-18.04"
             std: "11"
+          - os: "ubuntu-20.04"
+            std: "11"
+          - os: "ubuntu-16.04"
+            std: "14"
+          - os: "ubuntu-18.04"
+            std: "14"
+          - os: "ubuntu-20.04"
+            std: "14"
     needs: release
 
     steps:
