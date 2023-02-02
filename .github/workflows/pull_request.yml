@@ -1,15 +1,16 @@
+---
 name: CI
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths-ignore:
-    - '**/*.md'
+      - '**/*.md'
   push:
     tags:
       - v*
     paths-ignore:
-    - '**/*.md'
+      - '**/*.md'
 
 env:
   BOOST_VERSION: 1.75.0
@@ -22,38 +23,35 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: "ubuntu-16.04"
-            std: "11"
           - os: "ubuntu-18.04"
-            std: "11"
+            std: "17"
           - os: "ubuntu-20.04"
-            std: "11"
-          - os: "ubuntu-16.04"
-            std: "14"
-          - os: "ubuntu-18.04"
-            std: "14"
-          - os: "ubuntu-20.04"
-            std: "14"
+            std: "17"
+          - os: "ubuntu-22.04"
+            std: "17"
     steps:
       - id: config
+        name: Generate Artefact name
         run: |
-          artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
-          echo ::set-output name=artefact_name::$artefact_name
-      - uses: actions/checkout@v2
-      - name: Download boost
-        run: wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
-      - name: Extract boost
-        run: tar xf boost_${BOOST_VERSION//./_}.tar.gz
-      - name: Build boost
+          artefact_name="boost-${{ env.BOOST_VERSION }}-cpp${{ matrix.config.std }}-${{ matrix.config.os }}-x64.tar.gz"
+          echo "artefact_name=$artefact_name" >> $GITHUB_OUTPUT
+      - name: Checkout Boost
+        uses: actions/checkout@v3
+        with:
+          repository: boostorg/boost
+          ref: boost-${{ env.BOOST_VERSION }}
+          path: boost
+          submodules: recursive
+      - name: Build Boost
+        working-directory: boost
         run: |
-          cd boost_${BOOST_VERSION//./_}
           ./bootstrap.sh --prefix="${{ github.workspace }}/opt/boost${{ matrix.config.std }}"
           ./b2 -j$(nproc) install cxxflags="-std=c++${{ matrix.config.std }} -fPIC" linkflags="-std=c++${{ matrix.config.std }} -fPIC" link=static
       - name: Archive boost
         working-directory: ${{ github.workspace }}/opt
         run: cmake -E tar cJfv "${{ steps.config.outputs.artefact_name }}" boost${{ matrix.config.std }}
       - name: Upload artefact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "${{ steps.config.outputs.artefact_name }}"
           path: "${{ github.workspace }}/opt/${{ steps.config.outputs.artefact_name }}"
@@ -65,24 +63,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
 
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1.0.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
 
-    - name: Store Release url
-      run: echo "${{ steps.create_release.outputs.upload_url }}" > ./upload_url
-    - uses: actions/upload-artifact@v1
-      with:
-        path: ./upload_url
-        name: upload_url
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
   publish:
     if: contains(github.ref, 'tags/v')
@@ -93,48 +87,33 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: "ubuntu-16.04"
-            std: "11"
           - os: "ubuntu-18.04"
-            std: "11"
+            std: "17"
           - os: "ubuntu-20.04"
-            std: "11"
-          - os: "ubuntu-16.04"
-            std: "14"
-          - os: "ubuntu-18.04"
-            std: "14"
-          - os: "ubuntu-20.04"
-            std: "14"
+            std: "17"
+          - os: "ubuntu-22.04"
+            std: "17"
     needs: release
 
     steps:
-    - id: config
-      run: |
-        artefact_name="boost${{ matrix.config.std }}-${{ env.BOOST_VERSION }}-${{ matrix.config.os }}-x64.tar.gz"
-        echo ::set-output name=artefact_name::$artefact_name
-    - name: Download artifact
-      uses: actions/download-artifact@v1
-      with:
-        name: "${{ steps.config.outputs.artefact_name }}"
-        path: ./
-    - name: Download URL
-      uses: actions/download-artifact@v1
-      with:
-        name: upload_url
-        path: ./
-    - id: set_upload_url
-      run: |
-        upload_url=`cat ./upload_url`
-        echo ::set-output name=upload_url::$upload_url
-    - name: Upload to Release
-      id: upload_to_release
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
-        asset_path: "./${{ steps.config.outputs.artefact_name }}"
-        asset_name: "${{ steps.config.outputs.artefact_name }}"
-        asset_content_type: application/x-gtar
+      - id: config
+        run: |
+          artefact_name="boost-${{ env.BOOST_VERSION }}-cpp${{ matrix.config.std }}-${{ matrix.config.os }}-x64.tar.gz"
+          echo "artefact_name=$artefact_name" >> $GITHUB_OUTPUT
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ steps.config.outputs.artefact_name }}"
+          path: ./
+      - name: Upload to Release
+        id: upload_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: "./${{ steps.config.outputs.artefact_name }}"
+          asset_name: "${{ steps.config.outputs.artefact_name }}"
+          asset_content_type: application/x-gtar
 
 
