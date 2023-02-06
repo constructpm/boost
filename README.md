@@ -11,6 +11,6 @@ When Boost is a dependency of C++ code, fetching prebuilt binaries speeds up the
 
 Using `curl` to download and extract to `/opt/boost17`:
 
-    curl -L https://github.com/constructpm/boost/releases/download/v1.75.0-2/boost-1.75.0-cpp17-$PLATFORM-x64.tar.gz | sudo tar -xJC /opt
+    curl -L https://github.com/constructpm/boost/releases/download/v1.81.0-1/boost-1.81.0-cpp17-$PLATFORM-x64.tar.gz | sudo tar -xJC /opt
     
 where `$PLATFORM` is `ubuntu-18.04`, `ubuntu-20.04` or `ubuntu-22.04`.
