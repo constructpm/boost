@@ -13,22 +13,25 @@ on:
       - '**/*.md'
 
 env:
-  BOOST_VERSION: 1.81.0
+  BOOST_VERSION: 1.77.0
 
 jobs:
   build:
     name: "Build ${{ matrix.config.os }}"
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.runner }}
     strategy:
       fail-fast: false
       matrix:
         config:
           - os: "ubuntu-18.04"
             std: "17"
+            runner: droplet-ubuntu-18.04
           - os: "ubuntu-20.04"
             std: "17"
+            runner: ubuntu-20.04
           - os: "ubuntu-22.04"
             std: "17"
+            runner: ubuntu-22.04
     steps:
       - id: config
         name: Generate Artefact name
@@ -82,7 +85,7 @@ jobs:
     if: contains(github.ref, 'tags/v')
 
     name: "Publish ${{ matrix.config.os }}"
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
